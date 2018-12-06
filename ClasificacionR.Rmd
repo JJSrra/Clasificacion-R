@@ -147,6 +147,7 @@ plot(wbcd_test$texture_mean~wbcd_test$area_mean,col=knnPred.1, main="k-NN Modelo
 plot(wbcd_test$texture_mean~wbcd_test$area_mean,col=knnPred.2, main="k-NN Modelo 2")
 plot(wbcd_test$texture_mean~wbcd_test$area_mean,col=knnPred.3, main="k-NN Modelo 3")
 plot(wbcd_test$texture_mean~wbcd_test$area_mean,col=wbcd_test_labels, main="Originales Test")
+par(mfrow=c(1,1))
 ```
 
 ## Ejercicio 2. Usando el dataset Smarket, realizar una 10-fold cross-validation con regresión logística.
@@ -166,3 +167,133 @@ glmFit
 ```
 
 Vemos que el modelo obtenido no es muy bueno, apenas superando el 50% de acierto, por lo que no lo consideraremos adecuado para hacer una predicción sobre estos datos.
+
+## Ejercicio 3. Probar LDA con todas las variables Lag del dataset Smarket. Hacer una rápida comparativa entre regresión logística y LDA. Probar QDA y comparar los tres métodos con gráficas.
+
+Antes de utilizar LDA vamos a comprobar que las variables que serán objeto de nuestro estudio siguen una distribución normal. Para ello vamos a utilizar el test de Saphiro-Wilk.
+
+```{r}
+shapiro.test(Smarket$Lag1)
+qqnorm(y=Smarket$Lag1)
+qqline(y=Smarket$Lag1)
+
+shapiro.test(Smarket$Lag2)
+qqnorm(y=Smarket$Lag2)
+qqline(y=Smarket$Lag2)
+
+shapiro.test(Smarket$Lag3)
+qqnorm(y=Smarket$Lag3)
+qqline(y=Smarket$Lag3)
+
+shapiro.test(Smarket$Lag4)
+qqnorm(y=Smarket$Lag4)
+qqline(y=Smarket$Lag4)
+
+shapiro.test(Smarket$Lag5)
+qqnorm(y=Smarket$Lag5)
+qqline(y=Smarket$Lag5)
+```
+
+De acuerdo a los valores cercanos a 1 obtenidos como resultado del test de Saphiro-Wilk, y en relación a lo observado en las gráficas, podemos afirmar que las 5 variables Lag están distribuidas normalmente. El siguiente paso es asegurarnos de que la varianza es similar entre las distintas variables.
+
+```{r}
+var(Smarket$Lag1)
+var(Smarket$Lag2)
+var(Smarket$Lag3)
+var(Smarket$Lag4)
+var(Smarket$Lag5)
+```
+
+También podemos confirmarlo mediante una gráfica de tipo "box-plot".
+
+```{r}
+boxplot(Smarket[2:6])
+```
+
+Las gráficas son prácticamente equivalentes por lo que aseguramos la similitud entre las variables. Ahora podemos realizar LDA. Lo haremos con los años previos a 2005 para luego comprobar la predicción sobre 2005.
+
+```{r}
+require(MASS)
+lda.fit <- lda(Direction~Lag1+Lag2+Lag3+Lag4+Lag5, data=Smarket, subset=Year<2005)
+lda.fit
+```
+
+Visualicemos los datos del modelo para ambas clases.
+
+```{r}
+
+plot(lda.fit, type="both")
+```
+
+Vamos a realizar la predicción del año 2005 con el modelo anterior.
+
+```{r}
+Smarket.2005 = subset(Smarket,Year==2005) 
+lda.pred = predict(lda.fit, Smarket.2005)
+```
+
+Obtenemos la matriz de confusión y el porcentaje de acierto de este modelo para el año 2005.
+
+```{r}
+table(lda.pred$class,Smarket.2005$Direction)
+ldaPred = mean(lda.pred$class==Smarket.2005$Direction)
+ldaPred
+```
+
+Como podemos observar no existe un acierto muy elevado, apenas de un 58%. Con la librería `klaR` podemos mostrar las variables una frente a otra y enseñar cómo divide el espacio el modelo.
+
+```{r}
+library(klaR)
+partimat(Direction~Lag1+Lag2+Lag3+Lag4+Lag5, data=Smarket, method="lda")
+```
+
+Vamos a comparar estos resultados con los obtenidos con regresión logística.
+
+```{r}
+glmFit$results$Accuracy
+ldaPred
+```
+
+En base a estos resultados podemos afirmar que LDA se ha comportado mejor que regresión logística para este conjunto de datos.
+
+Vamos ahora a probar los resultados con QDA. Para ello comprobamos antes si los datos dentro de la propia clase también se distribuyen de forma normal.
+
+```{r}
+Smarket.up = Smarket[Smarket$Direction == "Up",]
+Smarket.down = Smarket[Smarket$Direction == "Down",]
+
+var(Smarket.up$Lag1)
+var(Smarket.up$Lag2)
+var(Smarket.up$Lag3)
+var(Smarket.up$Lag4)
+var(Smarket.up$Lag5)
+
+var(Smarket.down$Lag1)
+var(Smarket.down$Lag2)
+var(Smarket.down$Lag3)
+var(Smarket.down$Lag4)
+var(Smarket.down$Lag5)
+```
+
+A continuación procedemos a utilizar QDA.
+
+```{r}
+qda.fit = qda(Direction~Lag1+Lag2+Lag3+Lag4+Lag5, data=Smarket, subset=Year<2005)
+qda.fit
+```
+
+Con el modelo generado podemos predecir los datos para el año 2005.
+
+```{r}
+qda.pred = predict(qda.fit, Smarket.2005)
+
+table(qda.pred$class, Smarket.2005$Direction)
+qdaPred = mean(qda.pred$class==Smarket.2005$Direction)
+qdaPred
+```
+
+QDA no aporta mejores resultados que LDA, por tanto, a pesar de que este no es un buen modelo, sí es el mejor de los tres que se han probado en este dataset. Podemos echar un vistazo a las gráficas generadas con el paquete `klaR` para el modelo QDA.
+
+```{r}
+partimat(Direction~Lag1+Lag2+Lag3+Lag4+Lag5, data=Smarket, method="qda")
+```
