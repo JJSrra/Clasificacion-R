@@ -149,3 +149,20 @@ plot(wbcd_test$texture_mean~wbcd_test$area_mean,col=knnPred.3, main="k-NN Modelo
 plot(wbcd_test$texture_mean~wbcd_test$area_mean,col=wbcd_test_labels, main="Originales Test")
 ```
 
+## Ejercicio 2. Usando el dataset Smarket, realizar una 10-fold cross-validation con regresión logística.
+
+```{r}
+library(ISLR)
+head(Smarket)
+```
+
+Una vez cargado el dataset, entrenamos un modelo `glm` (regresión logística) usando de nuevo la función `train` del paquete caret. Entrenaremos con todas las columnas menos la columna `Direction`, que contiene las etiquetas, y la columna `Today`, de la que se extrae el valor de Direction y que sería perjudicial para nuestro modelo por provocar sobreaprendizaje.
+
+```{r}
+glmFit = train(Smarket[,-8:-9], y=Smarket[,9], method="glm",
+         preProcess=c("center", "scale"), tuneLength=10,
+         control=glm.control(maxit=500), trControl=trainControl(method = "cv")) 
+glmFit
+```
+
+Vemos que el modelo obtenido no es muy bueno, apenas superando el 50% de acierto, por lo que no lo consideraremos adecuado para hacer una predicción sobre estos datos.
