@@ -297,3 +297,49 @@ QDA no aporta mejores resultados que LDA, por tanto, a pesar de que este no es u
 ```{r}
 partimat(Direction~Lag1+Lag2+Lag3+Lag4+Lag5, data=Smarket, method="qda")
 ```
+
+## Ejercicio 4. Usando la información del dataset `clasif_train_alumnos.csv`, comparar LDA y QDA con Wilcoxon, realizar una comparativa múltiple usando Friedman y usar Holm para ver si hay un algoritmo ganador.
+
+En primer lugar cargamos el nuevo dataset.
+
+```{r}
+alumnos = read.csv("Datos/clasif_train_alumnos.csv")
+tabla.train = cbind(alumnos[,2:dim(alumnos)[2]])
+colnames(tabla.train) = names(alumnos)[2:dim(alumnos)[2]]
+rownames(tabla.train) = alumnos[,1]
+```
+
+Con los datos guardados, aplicamos el test de Wilcoxon entre LDA y QDA.
+
+```{r}
+LDAvsQDA = wilcox.test(tabla.train$out_train_lda, tabla.train$out_train_qda,
+           alternative="two.sided", paired=TRUE)
+Rmas = LDAvsQDA$statistic
+pvalue = LDAvsQDA$p.value
+LDAvsQDA = wilcox.test(tabla.train$out_train_qda, tabla.train$out_train_lda,
+              alternative="two.sided", paired=TRUE)
+Rmenos = LDAvsQDA$statistic
+Rmas
+Rmenos
+pvalue
+```
+
+Dados estos resultados podemos afirmar con un 82% de confianza que existen diferencias suficientemente significativas entre LDA y QDA para este dataset.
+
+A continuación realizaremos el test de Friedman con los datos anteriores.
+
+```{r}
+friedman.test(as.matrix(tabla.train))
+```
+
+Según el test de Friedman sin embargo no podemos asegurar lo anterior con una confianza elevada, estos algoritmos tan sólo serían distintos de forma significativa al 48% de confianza.
+
+Por último, comparemos los algoritmos mediante el test de Holm.
+
+```{r}
+tam = dim(tabla.train)
+groups = rep(1:tam[2], each=tam[1])
+pairwise.wilcox.test(as.matrix(tabla.train), groups, p.adjust = "holm", paired = TRUE)
+```
+
+Dado que todos los valores de la tabla resultante son cercanos al 50% no podemos afirmar que exista una gran diferencia entre los algoritmos. Por tanto, no existe un ganador claro entre ellos.
